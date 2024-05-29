@@ -1,0 +1,82 @@
+esphome:
+  name: portao-garagem
+  friendly_name: portao_garagem
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: WARN
+
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Portao-Garagem"
+    password: !secret fallbak_password
+
+captive_portal:
+
+output:
+  - platform: gpio
+    pin:
+      number: GPIO2
+      mode: output
+    id: LED
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode:
+        input: true
+        pullup: true
+        output: false
+        open_drain: false
+        pulldown: false
+      inverted: false
+    name: sensor de abertura
+    id: sensor_abertura
+    device_class: garage_door
+    filters:
+      - delayed_on: 10ms
+    disabled_by_default: false
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              or:
+                - binary_sensor.is_on: sensor_abertura
+            then:
+              - output.turn_on: LED
+            else:
+              - output.turn_off: LED
+
+switch:
+  - platform: gpio
+    pin: GPIO23
+    id: switch_portao
+    icon: "mdi:garage"
+    disabled_by_default: false
+    on_turn_on:
+      - delay: 500ms
+      - switch.turn_off: switch_portao
+
+button:
+  - platform: template
+    name: controle do portão
+    id: button_portao
+    icon: "mdi:radiobox-marked"
+    disabled_by_default: false
+    on_press:
+      - switch.turn_on: switch_portao
